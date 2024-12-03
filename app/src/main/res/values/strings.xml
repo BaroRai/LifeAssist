@@ -1,0 +1,15 @@
+<resources>
+    <!-- LoginActivity -->
+    <string name="email_hint">Email</string>
+    <string name="login_button">Login</string>
+    <string name="register_link">Don\'t have an account? Register!</string>
+
+    <!-- MainActivity -->
+    <string name="logout_button">Logout</string>
+    <string name="app_name">LifeAssist</string>
+
+    <!-- RegisterActivity -->
+    <string name="register_button">Register</string>
+    <string name="password_hint">Password</string>
+    <string name="login_link">Already have and account ? Log in!</string>
+</resources>
