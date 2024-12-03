@@ -1,7 +1,7 @@
 package com.example.lifeassist.api
 
 import com.google.gson.annotations.SerializedName
-import retrofit2.Call
+
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET

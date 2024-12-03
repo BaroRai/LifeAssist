@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lifeassist.repository.AuthRepository
 import kotlinx.coroutines.launch
-import com.example.lifeassist.api.AuthResponse
 
 class AuthViewModel : ViewModel() {
 
@@ -31,7 +30,7 @@ class AuthViewModel : ViewModel() {
                 if (response != null) {
                     if (response.message != null) {
                         // Login successful, update LiveData with the success message
-                        _loginSuccess.value = response.message
+                        _loginSuccess.value = response.message!! // must be -Git error NPE
                     } else {
                         // If message is null, there's an error with the login
                         _loginError.value = "Error: ${response.error ?: "Unknown error"}"
