@@ -41,24 +41,25 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun observeViewModel() {
-        // Observe login success
-        authViewModel.loginSuccess.observe(this) { successMessage ->
-            successMessage?.let {
+        // Observe the loggedInUser LiveData
+        authViewModel.loggedInUser.observe(this) { user ->
+            user?.let {
                 // Show success message
-                Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
 
-                // Store the user session (isLoggedIn flag)
+                // Store the userId and userEmail in SharedPreferences
                 val sharedPreferences = getSharedPreferences("LifeAssistPrefs", MODE_PRIVATE)
-                val editor = sharedPreferences.edit()
-                editor.putString("userEmail", binding.emailInput.text.toString().trim())
-                editor.putBoolean("isLoggedIn", true) // Store login status
-                editor.apply()
+                with(sharedPreferences.edit()) {
+                    putString("userId", it.userId)
+                    putString("userEmail", it.email)
+                    putBoolean("isLoggedIn", true)
+                    apply()
+                }
 
                 // Redirect to MainActivity
                 val intent = Intent(this, MainActivity::class.java)
                 startActivity(intent)
                 finish() // Finish LoginActivity
-
             }
         }
 

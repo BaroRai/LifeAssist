@@ -5,45 +5,42 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lifeassist.repository.AuthRepository
+import com.example.lifeassist.model.User
 import kotlinx.coroutines.launch
 
 class AuthViewModel : ViewModel() {
-
     private val authRepository = AuthRepository()
 
-    // LiveData to observe the AuthResponse (success message or error)
-    private val _loginSuccess = MutableLiveData<String>()
-    val loginSuccess: LiveData<String> = _loginSuccess
+    // New LiveData to hold a User object on successful login
+    private val _loggedInUser = MutableLiveData<User?>()
+    val loggedInUser: LiveData<User?> get() = _loggedInUser
 
-    // LiveData to handle errors
     private val _loginError = MutableLiveData<String>()
-    val loginError: LiveData<String> = _loginError
+    val loginError: LiveData<String> get() = _loginError
 
-    // Function to perform login
     fun login(email: String, password: String) {
         viewModelScope.launch {
             try {
-                // Make the network request via the AuthRepository
                 val response = authRepository.login(email, password)
-
-                // Handle the successful response
                 if (response != null) {
-                    if (response.message != null) {
-                        // Login successful, update LiveData with the success message
-                        _loginSuccess.value = response.message!! // must be -Git error NPE
+                    if (response.message == "Login successful" && !response.userId.isNullOrEmpty()) {
+                        // Create a User object and set it
+                        val user = User(
+                            userId = response.userId,
+                            email = email,
+                            password = password
+                        )
+                        _loggedInUser.value = user
                     } else {
-                        // If message is null, there's an error with the login
-                        _loginError.value = "Error: ${response.error ?: "Unknown error"}"
+                        _loginError.value = response.error ?: "Login failed"
                     }
                 } else {
-                    // If response is null or unsuccessful, show an error message
                     _loginError.value = "Login failed: Invalid credentials"
                 }
-
             } catch (e: Exception) {
-                // Handle network errors and other unexpected exceptions
-                _loginError.value = "Error: ${e.message}"
+                _loginError.value = "Network error: ${e.message}"
             }
         }
     }
 }
+
