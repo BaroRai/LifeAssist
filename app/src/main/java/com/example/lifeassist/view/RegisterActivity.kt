@@ -1,4 +1,3 @@
-// RegisterActivity.kt
 package com.example.lifeassist.view
 
 import android.content.Intent
@@ -9,10 +8,11 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.example.lifeassist.databinding.ActivityRegisterBinding
 import com.example.lifeassist.viewmodel.RegisterViewModel
+import com.example.lifeassist.model.Result
 
 class RegisterActivity : AppCompatActivity() {
     private lateinit var binding: ActivityRegisterBinding
-    private val viewModel: RegisterViewModel by viewModels()
+    private val registerViewModel: RegisterViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,9 +20,8 @@ class RegisterActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.loginLink.setOnClickListener {
-            Log.d("RegisterActivity", "Log in link clicked")
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
+            Log.d("RegisterActivity", "Navigating to LoginActivity")
+            startActivity(Intent(this, LoginActivity::class.java))
         }
 
         binding.registerButton.setOnClickListener {
@@ -34,24 +33,24 @@ class RegisterActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            viewModel.register(email, password)
+            registerViewModel.register(email, password)
         }
 
         observeViewModel()
     }
 
     private fun observeViewModel() {
-        viewModel.registerResult.observe(this) { response ->
-            Toast.makeText(this, response.message, Toast.LENGTH_SHORT).show()
-            if (response.message == "User registered successfully") {
-                // Navigate to LoginActivity or MainActivity
-                startActivity(Intent(this, LoginActivity::class.java))
-                finish()
+        registerViewModel.registrationResult.observe(this) { result ->
+            when (result) {
+                is Result.Success -> {
+                    Toast.makeText(this, "Registration successful! Please login.", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this, LoginActivity::class.java))
+                    finish()
+                }
+                is Result.Error -> {
+                    Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+                }
             }
-        }
-
-        viewModel.error.observe(this) { error ->
-            Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
         }
     }
 }

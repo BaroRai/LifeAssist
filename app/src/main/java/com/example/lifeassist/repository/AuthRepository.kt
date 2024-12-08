@@ -1,40 +1,55 @@
 package com.example.lifeassist.repository
 
-import com.example.lifeassist.api.AuthResponse
-import com.example.lifeassist.api.LoginRequest
-import com.example.lifeassist.api.RegisterRequest
 import com.example.lifeassist.api.RetrofitClient
-import retrofit2.Response
+import com.example.lifeassist.api.data.LoginData
+import com.example.lifeassist.api.data.RegisterData
+import com.example.lifeassist.model.Login
+import com.example.lifeassist.model.Result
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class AuthRepository {
 
-    private val api = RetrofitClient.authApi
+    private val apiService = RetrofitClient.apiService
 
-    // Function to handle login and return AuthResponse
-    suspend fun login(email: String, password: String): AuthResponse? {
-        val loginRequest = LoginRequest(email, password)
-
-        // Make the network request using Retrofit's suspend function
-        val response: Response<AuthResponse> = api.login(loginRequest)
-
-        // Return the response body if successful
-        return if (response.isSuccessful) {
-            response.body() // Return AuthResponse if successful
-        } else {
-            null // Return null if unsuccessful
+    suspend fun login(email: String, password: String): Result<Login> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val loginRequest = LoginData.Request(email = email, password = password)
+                val response = apiService.login(loginRequest)
+                if (response.isSuccessful) {
+                    val responseBody = response.body()
+                    if (responseBody != null) {
+                        Result.Success(responseBody.toLogin())
+                    } else {
+                        Result.Error("Empty response from server")
+                    }
+                } else {
+                    Result.Error("Login failed: ${response.message()}")
+                }
+            } catch (e: Exception) {
+                Result.Error("Network error: ${e.message}")
+            }
         }
     }
 
-    // Function to handle registration (similar to login)
-    suspend fun register(email: String, password: String): AuthResponse? {
-        val registerRequest = RegisterRequest(email, password)
-
-        // Make the network request using Retrofit's suspend function
-        val response: Response<AuthResponse> = api.register(registerRequest)  // Assuming register endpoint is same
-        return if (response.isSuccessful) {
-            response.body() // Return AuthResponse if successful
-        } else {
-            null // Return null if unsuccessful
+    suspend fun register(email: String, password: String): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val registerRequest = RegisterData.Request(email = email, password = password)
+                val response = apiService.register(registerRequest)
+                if (response.isSuccessful) {
+                    Result.Success(Unit)
+                } else {
+                    Result.Error("Registration failed: ${response.message()}")
+                }
+            } catch (e: Exception) {
+                Result.Error("Network error: ${e.message}")
+            }
         }
+    }
+
+    private fun LoginData.Response.toLogin(): Login {
+        return Login(userId = this.userId, email = this.email, description = this.description, username = this.username)
     }
 }

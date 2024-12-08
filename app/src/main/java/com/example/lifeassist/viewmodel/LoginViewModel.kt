@@ -4,34 +4,31 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.lifeassist.api.AuthResponse
+import com.example.lifeassist.model.Login
+import com.example.lifeassist.model.Result
 import com.example.lifeassist.repository.AuthRepository
 import kotlinx.coroutines.launch
 
-class LoginViewModel : ViewModel() {
-    private val authRepository = AuthRepository()
+class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
-    // LiveData to observe the AuthResponse (success message or error)
-    private val _loginResult = MutableLiveData<AuthResponse?>()
-    val loginResult: LiveData<AuthResponse?> = _loginResult
+    private val _loginResult = MutableLiveData<Result<Login>>()
+    val loginResult: LiveData<Result<Login>> get() = _loginResult
 
-    // LiveData to handle errors
-    private val _error = MutableLiveData<String>()
-    val error: LiveData<String> = _error
+    private val _isLoggedIn = MutableLiveData<Boolean>()
+    val isLoggedIn: LiveData<Boolean> get() = _isLoggedIn
 
-    // Function to perform login
     fun login(email: String, password: String) {
-        // Launch coroutine to handle network call
         viewModelScope.launch {
-            try {
-                val authResponse = authRepository.login(email, password)
-                if (authResponse != null) {
-                    _loginResult.value = authResponse // Success response
-                } else {
-                    _error.value = "Login failed: Invalid credentials"
+            val result = authRepository.login(email, password)
+            when (result) {
+                is Result.Success -> {
+                    _loginResult.value = result
+                    _isLoggedIn.value = true // Update login status
                 }
-            } catch (e: Exception) {
-                _error.value = "Network error: ${e.message}" // Handle any network errors
+                is Result.Error -> {
+                    _loginResult.value = result
+                    _isLoggedIn.value = false // Update login status
+                }
             }
         }
     }

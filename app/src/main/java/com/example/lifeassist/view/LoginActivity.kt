@@ -2,28 +2,33 @@ package com.example.lifeassist.view
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.example.lifeassist.databinding.ActivityLoginBinding
-import com.example.lifeassist.viewmodel.AuthViewModel
+import com.example.lifeassist.viewmodel.LoginViewModel
+import com.example.lifeassist.model.Result
 
 class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
-    private val authViewModel: AuthViewModel by viewModels()
+    private val loginViewModel: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupListeners()
+        observeViewModel()
+    }
+
+    private fun setupListeners() {
+        // Navigate to RegisterActivity on click
         binding.registerLink.setOnClickListener {
-            Log.d("LoginActivity", "Register link clicked")
-            val intent = Intent(this, RegisterActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, RegisterActivity::class.java))
         }
 
+        // Handle login button click
         binding.loginButton.setOnClickListener {
             val email = binding.emailInput.text.toString().trim()
             val password = binding.passwordInput.text.toString().trim()
@@ -33,41 +38,38 @@ class LoginActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // Trigger the login function in the ViewModel
-            authViewModel.login(email, password)
+            loginViewModel.login(email, password) // Trigger login in ViewModel
         }
-
-        observeViewModel()
     }
 
     private fun observeViewModel() {
-        // Observe the loggedInUser LiveData
-        authViewModel.loggedInUser.observe(this) { user ->
-            user?.let {
-                // Show success message
-                Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
-
-                // Store the userId and userEmail in SharedPreferences
-                val sharedPreferences = getSharedPreferences("LifeAssistPrefs", MODE_PRIVATE)
-                with(sharedPreferences.edit()) {
-                    putString("userId", it.userId)
-                    putString("userEmail", it.email)
-                    putBoolean("isLoggedIn", true)
-                    apply()
+        loginViewModel.loginResult.observe(this) { result ->
+            when (result) {
+                is Result.Success -> {
+                    val user = result.data
+                    saveLoginState(user.userId, user.email)
+                    navigateToMainActivity(user.username.toString())
                 }
-
-                // Redirect to MainActivity
-                val intent = Intent(this, MainActivity::class.java)
-                startActivity(intent)
-                finish() // Finish LoginActivity
+                is Result.Error -> {
+                    Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+                }
             }
         }
+    }
 
-        // Observe login error
-        authViewModel.loginError.observe(this) { errorMessage ->
-            errorMessage?.let {
-                Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
-            }
+    private fun saveLoginState(userId: String, email: String) {
+        val sharedPreferences = getSharedPreferences("LifeAssistPrefs", MODE_PRIVATE)
+        with(sharedPreferences.edit()) {
+            putString("userId", userId)
+            putString("userEmail", email)
+            putBoolean("isLoggedIn", true)
+            apply()
         }
+    }
+
+    private fun navigateToMainActivity(username: String) {
+        Toast.makeText(this, "Welcome $username", Toast.LENGTH_SHORT).show()
+        startActivity(Intent(this, MainActivity::class.java))
+        finish()
     }
 }

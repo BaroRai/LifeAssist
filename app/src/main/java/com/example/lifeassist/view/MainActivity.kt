@@ -3,207 +3,242 @@ package com.example.lifeassist.view
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.View
-import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.drawerlayout.widget.DrawerLayout
 import com.example.lifeassist.R
 import com.example.lifeassist.databinding.ActivityMainBinding
 import com.example.lifeassist.databinding.PopupGoalBinding
+import com.example.lifeassist.model.Main
 import com.example.lifeassist.viewmodel.MainViewModel
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-    private lateinit var drawerLayout: DrawerLayout
-    private val mainViewModel: MainViewModel by viewModels()
     private lateinit var popupBinding: PopupGoalBinding
+    private val mainViewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Check if the user is logged in
-        mainViewModel.checkIfUserIsLoggedIn(this)
+        setupObservers()
+        setupPopup()
+        setupDrawer()
 
-        // Observe the logged-in status from ViewModel
-        mainViewModel.isLoggedIn.observe(this) { isLoggedIn ->
-            if (!isLoggedIn) {
-                redirectToLogin()
-            }
-        }
+        val userId = getSharedPreferences("LifeAssistPrefs", Context.MODE_PRIVATE)
+            .getString("userId", null)
 
-        val sharedPreferences = getSharedPreferences("LifeAssistPrefs", MODE_PRIVATE)
-        val email = sharedPreferences.getString("userEmail", null)
-
-        if (email.isNullOrEmpty()){
+        if (userId.isNullOrEmpty()) {
             redirectToLogin()
         } else {
-            mainViewModel.fetchUserData(email)
+            mainViewModel.fetchUserData(userId)
         }
 
-        // Observe user data from ViewModel
-        mainViewModel.userData.observe(this) { userData ->
-            // Update UI with user data
-            userData?.let {
-                binding.usernameTextView.text = it.username
-                binding.descriptionTextView.text = it.description
+        setupNavigationMenu()
+    }
+
+    private fun setupObservers() {
+        mainViewModel.isLoggedIn.observe(this) { isLoggedIn ->
+            if (!isLoggedIn) redirectToLogin()
+        }
+
+        mainViewModel.mainData.observe(this) { mainData ->
+            mainData?.let { data ->
+                // Update UI with user and goals
+                binding.usernameTextView.text = data.user.name
+                binding.descriptionTextView.text = if (data.goals.isNotEmpty()) {
+                    "Current Goal: ${data.goals[0].title}"
+                } else {
+                    "No goals available"
+                }
             }
         }
 
-        // Observe errors from ViewModel
-        mainViewModel.error.observe(this) { errorMessage ->
-            Log.e("MainActivity", errorMessage)
+        mainViewModel.error.observe(this) { error ->
+            Toast.makeText(this, error, Toast.LENGTH_LONG).show()
         }
+    }
 
-        // Handle Logout Button Click
-        binding.navLogout.setOnClickListener {
-            Log.d("Logout", "I was clicked! (logout)")
-            mainViewModel.logoutUser(this)
-            redirectToLogin()
-        }
-
-        // Handle Drawer Open/Close Logic
-        drawerLayout = findViewById(R.id.drawer_layout)
-        binding.container.setOnClickListener {
-            if (drawerLayout.isDrawerOpen(binding.navDrawer)) {
-                drawerLayout.closeDrawer(binding.navDrawer)
-            } else {
-                drawerLayout.openDrawer(binding.navDrawer)
-            }
-        }
-
-        // Navigation menu items
-        binding.navHome.setOnClickListener { /* Home logic */ }
-        binding.navProfile.setOnClickListener { /* Profile logic */ }
-        binding.navSettings.setOnClickListener { /* Settings logic */ }
-
-        // Inflate the popup layout
-        val popupView = layoutInflater.inflate(R.layout.popup_goal, binding.container, false)
-        popupBinding = PopupGoalBinding.bind(popupView)
-        binding.container.addView(popupView)
+    private fun setupPopup() {
+        popupBinding = PopupGoalBinding.inflate(layoutInflater)
+        binding.container.addView(popupBinding.root)
         popupBinding.root.visibility = View.GONE
 
-        // Show the popup on Add Goal button click
+        // Show popup for adding goals
         binding.openPopupButton.setOnClickListener {
-            Log.d("MainActivity", "Open Popup Button Clicked")
             popupBinding.root.visibility = View.VISIBLE
         }
 
-        // Close the popup
+        // Close popup
         popupBinding.closeButton.setOnClickListener {
-            // Just hide the popup instead of clearing everything
             popupBinding.root.visibility = View.GONE
         }
 
-        // Utility function for dp to px
-        fun Int.dpToPx(context: Context): Int {
-            return (this * context.resources.displayMetrics.density).toInt()
-        }
-
-        // Add Step Button logic
+        // Add step dynamically
         popupBinding.addStepButton.setOnClickListener {
-            val stepText = popupBinding.stepInput.text.toString()
-
-            if (stepText.isBlank()) {
+            val stepText = popupBinding.stepInput.text.toString().trim()
+            if (stepText.isEmpty()) {
                 Toast.makeText(this, "Step cannot be empty", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            try {
-                val stepsLayout = popupBinding.stepsLayout
-                    ?: throw IllegalStateException("Steps layout is not properly initialized")
-
-                // Create a horizontal layout for the step
-                val stepLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    ).apply {
-                        setMargins(0, 16, 0, 0) // margin between steps
-                    }
-                }
-
-                // Create the step EditText
-                val stepEditText = EditText(this).apply {
-                    setText(stepText)
-                    textSize = 16f
-                    layoutParams = LinearLayout.LayoutParams(
-                        0,
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        1f
-                    ).apply {
-                        setMargins(8, 0, 8, 0)
-                    }
-                    isEnabled = false
-                }
-
-                // Toggle button for editing
-                val toggleEditButton = Button(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(
-                        48.dpToPx(this@MainActivity),
-                        48.dpToPx(this@MainActivity)
-                    )
-                    background = getDrawable(R.drawable.ic_baseline_edit_24)
-                    setOnClickListener {
-                        if (stepEditText.isEnabled) {
-                            stepEditText.isEnabled = false
-                            background = getDrawable(R.drawable.ic_baseline_edit_24)
-                        } else {
-                            stepEditText.isEnabled = true
-                            stepEditText.requestFocus()
-                            background = getDrawable(R.drawable.ic_baseline_deny_24)
-                        }
-                    }
-                }
-
-                // Add views to stepLayout
-                stepLayout.addView(stepEditText)
-                stepLayout.addView(toggleEditButton)
-
-                // Add the new step at the end of stepsLayout
-                stepsLayout.addView(stepLayout)
-
-                // Clear the input field for the next step
-                popupBinding.stepInput.text.clear()
-
-            } catch (e: Exception) {
-                Log.e("MainActivity", "Error adding step: ${e.message}")
-                Toast.makeText(this, "An error occurred: ${e.message}", Toast.LENGTH_SHORT).show()
+            // Dynamically create a container for the step
+            val stepContainer = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                setPadding(8, 8, 8, 8)
             }
+
+            // Create EditText for the step
+            val stepEditText = EditText(this).apply {
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setText(stepText)
+                isEnabled = false // Disable editing by default
+            }
+
+            // Create Edit Button
+            val editButton = ImageView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                setImageResource(R.drawable.ic_baseline_edit_24)
+                contentDescription = "Edit Step"
+            }
+
+            // Create Delete Button
+            val deleteButton = ImageView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                setImageResource(R.drawable.ic_baseline_deny_24)
+                contentDescription = "Delete Step"
+            }
+
+            // Add buttons and EditText to the container
+            stepContainer.addView(stepEditText)
+            stepContainer.addView(editButton)
+            stepContainer.addView(deleteButton)
+
+            // Add the container to steps layout
+            popupBinding.stepsContainer.addView(stepContainer)
+
+            // Set click listener for delete button
+            deleteButton.setOnClickListener {
+                popupBinding.stepsContainer.removeView(stepContainer)
+            }
+
+            // Set click listener for edit button
+            editButton.setOnClickListener {
+                if (stepEditText.isEnabled) {
+                    // If already enabled, stop editing
+                    stepEditText.isEnabled = false
+                    editButton.setImageResource(R.drawable.ic_baseline_edit_24) // Change back to edit icon
+                } else {
+                    // Enable editing
+                    stepEditText.isEnabled = true
+                    stepEditText.requestFocus()
+                    editButton.setImageResource(R.drawable.ic_baseline_edit_24) // Change to a checkmark icon
+                }
+            }
+
+            // Clear the input field
+            popupBinding.stepInput.text.clear()
         }
 
-        // Accept Button logic
+        // Accept and save the goal
         popupBinding.acceptButton.setOnClickListener {
             val goalTitle = popupBinding.goalInput.text.toString().trim()
-            if (goalTitle.isNotBlank()) {
-                val userId = sharedPreferences.getString("userId", null)
-
-                if (!userId.isNullOrEmpty()) {
-                    mainViewModel.submitGoal(userId, goalTitle)
-                    Toast.makeText(this, "Goal submitted successfully!", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "User not logged in!", Toast.LENGTH_SHORT).show()
-                }
-
-                // Hide the popup
-                popupBinding.root.visibility = View.GONE
-
-            } else {
+            if (goalTitle.isEmpty()) {
                 Toast.makeText(this, "Goal title cannot be empty", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
+
+            val steps = mutableListOf<Main.Step>()
+            for (i in 0 until popupBinding.stepsContainer.childCount) {
+                val stepContainer = popupBinding.stepsContainer.getChildAt(i) as LinearLayout
+                val stepEditText = stepContainer.getChildAt(0) as EditText
+                val stepTitle = stepEditText.text.toString().trim()
+
+                if (stepTitle.isNotEmpty()) {
+                    steps.add(
+                        Main.Step(
+                            id = "step_${System.currentTimeMillis()}_$i",
+                            title = stepTitle,
+                            status = "pending"
+                        )
+                    )
+                }
+            }
+
+            // Submit the goal
+            val newGoal = Main.Goal(
+                id = "goal_${System.currentTimeMillis()}",
+                title = goalTitle,
+                description = null, // No description for now
+                steps = steps,
+                createdAt = null,
+                updatedAt = null
+            )
+            mainViewModel.submitGoal("userIdPlaceholder", newGoal)
+
+            // Clear popup for next use
+            popupBinding.stepsContainer.removeAllViews()
+            popupBinding.goalInput.text.clear()
+            popupBinding.root.visibility = View.GONE
+        }
+    }
+
+    private fun setupNavigationMenu() {
+        binding.navHome.setOnClickListener {
+            Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.navProfile.setOnClickListener {
+            Toast.makeText(this, "Profile clicked", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.navSettings.setOnClickListener {
+            Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.navLogout.setOnClickListener {
+            mainViewModel.logoutUser()
+            redirectToLogin()
         }
     }
 
     private fun redirectToLogin() {
         startActivity(Intent(this, LoginActivity::class.java))
         finish()
+    }
+
+    private fun setupDrawer() {
+        binding.navHome.setOnClickListener {
+            Toast.makeText(this, "Home selected", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.navProfile.setOnClickListener {
+            Toast.makeText(this, "Profile selected", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.navSettings.setOnClickListener {
+            Toast.makeText(this, "Settings selected", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.navLogout.setOnClickListener {
+            mainViewModel.logoutUser()
+            redirectToLogin()
+        }
     }
 }
