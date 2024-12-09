@@ -5,10 +5,11 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lifeassist.model.Result
-import com.example.lifeassist.repository.AuthRepository
+import com.example.lifeassist.repository.RepositoryProvider
 import kotlinx.coroutines.launch
 
-class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel() {
+class RegisterViewModel() : ViewModel() {
+    private val authRepository = RepositoryProvider.authRepository
 
     private val _registrationResult = MutableLiveData<Result<Unit>>()
     val registrationResult: LiveData<Result<Unit>> get() = _registrationResult
@@ -20,3 +21,4 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
         }
     }
 }
+

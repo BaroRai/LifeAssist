@@ -17,9 +17,12 @@ class AuthRepository {
             try {
                 val loginRequest = LoginData.Request(email = email, password = password)
                 val response = apiService.login(loginRequest)
+
                 if (response.isSuccessful) {
                     val responseBody = response.body()
                     if (responseBody != null) {
+                        // Log the raw response
+                        println("API Response: $responseBody")
                         Result.Success(responseBody.toLogin())
                     } else {
                         Result.Error("Empty response from server")
@@ -50,6 +53,12 @@ class AuthRepository {
     }
 
     private fun LoginData.Response.toLogin(): Login {
-        return Login(userId = this.userId, email = this.email, description = this.description, username = this.username)
+        requireNotNull(userId) { "userId is missing in the response" } // Validate userId
+        return Login(
+            userId = this.userId,
+            email = this.email,
+            username = this.username ?: "Anonymous",
+            description = this.description ?: ""
+        )
     }
 }

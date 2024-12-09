@@ -57,6 +57,9 @@
                 android:orientation="vertical">
 
                 <!-- Add Step Section -->
+
+            </LinearLayout>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -82,7 +85,7 @@
                     android:textColor="@android:color/white"/>
 
             </LinearLayout>
-            </LinearLayout>
+
             </LinearLayout>
 
             <!-- Buttons -->

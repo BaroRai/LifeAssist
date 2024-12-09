@@ -6,4 +6,7 @@ object RepositoryProvider {
     val userRepository: UserRepository by lazy {
         UserRepository(RetrofitClient.apiService)
     }
+    val authRepository: AuthRepository by lazy {
+        AuthRepository()
+    }
 }

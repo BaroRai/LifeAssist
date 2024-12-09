@@ -6,10 +6,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lifeassist.model.Login
 import com.example.lifeassist.model.Result
-import com.example.lifeassist.repository.AuthRepository
+import com.example.lifeassist.repository.RepositoryProvider
 import kotlinx.coroutines.launch
 
-class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
+class LoginViewModel : ViewModel() {
+    private val authRepository = RepositoryProvider.authRepository
 
     private val _loginResult = MutableLiveData<Result<Login>>()
     val loginResult: LiveData<Result<Login>> get() = _loginResult

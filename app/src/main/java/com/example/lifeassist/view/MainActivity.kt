@@ -5,12 +5,15 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import com.example.lifeassist.R
 import com.example.lifeassist.databinding.ActivityMainBinding
 import com.example.lifeassist.databinding.PopupGoalBinding
@@ -50,6 +53,18 @@ class MainActivity : AppCompatActivity() {
 
         mainViewModel.mainData.observe(this) { mainData ->
             mainData?.let { data ->
+                // Update UI with user information
+                binding.usernameTextView.text = data.user.name // Display username
+                binding.descriptionTextView.text = if (data.user.description.isNullOrEmpty()) {
+                    "No description available" // Handle empty description case
+                } else {
+                    data.user.description // Display user description
+                }
+            }
+        }
+
+        mainViewModel.mainData.observe(this) { mainData ->
+            mainData?.let { data ->
                 // Update UI with user and goals
                 binding.usernameTextView.text = data.user.name
                 binding.descriptionTextView.text = if (data.goals.isNotEmpty()) {
@@ -73,6 +88,7 @@ class MainActivity : AppCompatActivity() {
         // Show popup for adding goals
         binding.openPopupButton.setOnClickListener {
             popupBinding.root.visibility = View.VISIBLE
+            resetPopup() // Reset only the necessary parts
         }
 
         // Close popup
@@ -148,7 +164,7 @@ class MainActivity : AppCompatActivity() {
                     // Enable editing
                     stepEditText.isEnabled = true
                     stepEditText.requestFocus()
-                    editButton.setImageResource(R.drawable.ic_baseline_edit_24) // Change to a checkmark icon
+                    editButton.setImageResource(R.drawable.ic_baseline_stop_edit_24) // Change to a checkmark icon
                 }
             }
 
@@ -169,53 +185,32 @@ class MainActivity : AppCompatActivity() {
                 val stepContainer = popupBinding.stepsContainer.getChildAt(i) as LinearLayout
                 val stepEditText = stepContainer.getChildAt(0) as EditText
                 val stepTitle = stepEditText.text.toString().trim()
-
                 if (stepTitle.isNotEmpty()) {
-                    steps.add(
-                        Main.Step(
-                            id = "step_${System.currentTimeMillis()}_$i",
-                            title = stepTitle,
-                            status = "pending"
-                        )
-                    )
+                    steps.add(Main.Step("step_${System.currentTimeMillis()}_$i", stepTitle, "pending"))
                 }
             }
 
-            // Submit the goal
             val newGoal = Main.Goal(
                 id = "goal_${System.currentTimeMillis()}",
                 title = goalTitle,
-                description = null, // No description for now
+                description = null,
                 steps = steps,
                 createdAt = null,
                 updatedAt = null
             )
+
             mainViewModel.submitGoal("userIdPlaceholder", newGoal)
 
-            // Clear popup for next use
-            popupBinding.stepsContainer.removeAllViews()
-            popupBinding.goalInput.text.clear()
+            // Hide popup and reset necessary fields
             popupBinding.root.visibility = View.GONE
+            resetPopup()
         }
     }
 
-    private fun setupNavigationMenu() {
-        binding.navHome.setOnClickListener {
-            Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show()
-        }
-
-        binding.navProfile.setOnClickListener {
-            Toast.makeText(this, "Profile clicked", Toast.LENGTH_SHORT).show()
-        }
-
-        binding.navSettings.setOnClickListener {
-            Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show()
-        }
-
-        binding.navLogout.setOnClickListener {
-            mainViewModel.logoutUser()
-            redirectToLogin()
-        }
+    private fun resetPopup() {
+        // Remove all dynamically added steps
+        popupBinding.goalInput.text.clear()
+        popupBinding.stepsContainer.removeAllViews()
     }
 
     private fun redirectToLogin() {
@@ -224,21 +219,52 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupDrawer() {
-        binding.navHome.setOnClickListener {
-            Toast.makeText(this, "Home selected", Toast.LENGTH_SHORT).show()
+        val drawerLayout = findViewById<DrawerLayout>(R.id.drawer_layout)
+        val hamburgerButton = findViewById<ImageButton>(R.id.hamburger_menu_button)
+
+        // Open Drawer on Hamburger Button Click
+        hamburgerButton.setOnClickListener {
+            if (drawerLayout.isDrawerOpen(GravityCompat.END)) {
+                drawerLayout.closeDrawer(GravityCompat.END)
+            } else {
+                drawerLayout.openDrawer(GravityCompat.END)
+            }
+        }
+    }
+
+    private fun setupNavigationMenu() {
+        // Handle Home click
+        findViewById<TextView>(R.id.nav_home).setOnClickListener {
+            Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show()
+            binding.drawerLayout.closeDrawer(GravityCompat.END)
         }
 
-        binding.navProfile.setOnClickListener {
-            Toast.makeText(this, "Profile selected", Toast.LENGTH_SHORT).show()
+        // Handle Profile click
+        findViewById<TextView>(R.id.nav_profile).setOnClickListener {
+            Toast.makeText(this, "Profile clicked", Toast.LENGTH_SHORT).show()
+            binding.drawerLayout.closeDrawer(GravityCompat.END)
         }
 
-        binding.navSettings.setOnClickListener {
-            Toast.makeText(this, "Settings selected", Toast.LENGTH_SHORT).show()
+        // Handle Settings click
+        findViewById<TextView>(R.id.nav_settings).setOnClickListener {
+            Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show()
+            binding.drawerLayout.closeDrawer(GravityCompat.END)
         }
 
-        binding.navLogout.setOnClickListener {
-            mainViewModel.logoutUser()
-            redirectToLogin()
+        // Handle Logout click
+        findViewById<TextView>(R.id.nav_logout).setOnClickListener {
+            logout()
         }
+    }
+
+    private fun logout() {
+        // Clear session data
+        val sharedPreferences = getSharedPreferences("LifeAssistPrefs", MODE_PRIVATE)
+        sharedPreferences.edit().clear().apply()
+
+        // Redirect to LoginActivity
+        val intent = Intent(this, LoginActivity::class.java)
+        startActivity(intent)
+        finish()
     }
 }
