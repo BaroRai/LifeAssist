@@ -12,16 +12,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <ImageButton
-            android:id="@+id/hamburger_menu_button"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_margin="10dp"
-            android:layout_gravity="right"
-            android:background="@android:color/transparent"
-            android:contentDescription="Menu"
-            android:src="@drawable/baseline_density_medium_24" />
-
         <!-- Scrollable Content -->
         <RelativeLayout
             android:layout_margin="20dp"
@@ -30,47 +20,65 @@
             android:padding="16dp">
 
             <LinearLayout
-                android:id="@+id/linearLayout"
+                android:id="@+id/mainScreenText"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <!-- Welcome Text -->
-                <TextView
-                    android:id="@+id/usernameTextView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    android:text="Username"
-                    android:textAlignment="center"
-                    android:textSize="18sp" />
+                android:layout_height="56dp"
+                android:orientation="horizontal">
 
                 <TextView
-                    android:id="@+id/descriptionTextView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="16dp"
-                    android:maxHeight="100dp"
-                    android:text="Description"
-                    android:textSize="16sp" />
-
-            </LinearLayout>
-                <ScrollView
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:contentDescription="Goals content">
+                    android:layout_weight="1"
+                    android:gravity="start|center_vertical"
+                    android:maxLines="1"
+                    android:text="Main screen"
+                    android:textSize="18sp"
+                    android:paddingLeft="16dp"
+                    android:background="@drawable/rect_bg"/>
 
-                    <LinearLayout
-                        android:id="@+id/goalsList"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical">
+                <ImageButton
+                    android:id="@+id/hamburger_menu_button"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_gravity="end"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Menu"
+                    android:src="@drawable/baseline_density_medium_24" />
+            </LinearLayout>
 
-                    </LinearLayout>
-                </ScrollView>
+            <TextView
+                android:id="@+id/descriptionTextView"
+                android:layout_below="@+id/mainScreenText"
+                android:layout_marginTop="30dp"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:padding="16dp"
+                android:text="Description"
+                android:textSize="16sp"
+                android:background="@drawable/rect_bg"/>
+
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@+id/descriptionTextView"
+                android:layout_marginTop="30dp"
+                android:contentDescription="Goals content"
+                android:background="@drawable/rect_bg">
+
+                <!-- LinearLayout inside ScrollView to display the goals -->
+                <LinearLayout
+                    android:id="@+id/goalsList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <!-- Goals will be added dynamically here -->
+                </LinearLayout>
+            </ScrollView>
+
         </RelativeLayout>
 
-
+        <!-- Floating Action Button to open the popup -->
         <ImageButton
             android:id="@+id/openPopupButton"
             android:layout_width="56dp"
@@ -91,6 +99,16 @@
         android:orientation="vertical"
         android:background="#FFFFFF"
         android:paddingTop="56dp">
+
+        <!-- Username and Description in Drawer -->
+        <TextView
+            android:id="@+id/usernameTextViewDrawer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Username"
+            android:textAlignment="center"
+            android:textSize="18sp"
+            android:padding="16dp" />
 
         <!-- Simple Navigation Items -->
         <TextView

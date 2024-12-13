@@ -13,14 +13,12 @@ data class UserDataResponse(
 data class GoalResponse(
     @SerializedName("id") val id: String,
     @SerializedName("title") val title: String,
-    @SerializedName("description") val description: String?,
     @SerializedName("steps") val steps: List<StepResponse>, // Include steps
     @SerializedName("createdAt") val createdAt: String?,
     @SerializedName("updatedAt") val updatedAt: String?
 )
 
 data class StepResponse(
-    @SerializedName("id") val id: String,
     @SerializedName("title") val title: String,
     @SerializedName("status") val status: String
 )
