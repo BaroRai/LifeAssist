@@ -14,13 +14,14 @@ data class Main(
     data class Goal(
         val id: String?,                         // Unique goal ID
         val title: String,                      // Title of the goal
-        val steps: List<Step>,                  // List of steps linked to the goal
+        val steps: List<Step>,
+        var status: String,// List of steps linked to the goal
         val createdAt: String?,                 // Creation timestamp
         val updatedAt: String?                  // Last update timestamp
     )
 
     data class Step(
         val title: String,          // Title of the step
-        val status: String          // Status: "pending" or "completed"
+        var status: String          // Status: "pending" or "completed"
     )
 }

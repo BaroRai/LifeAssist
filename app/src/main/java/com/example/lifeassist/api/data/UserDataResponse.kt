@@ -14,6 +14,7 @@ data class GoalResponse(
     @SerializedName("id") val id: String,
     @SerializedName("title") val title: String,
     @SerializedName("steps") val steps: List<StepResponse>, // Include steps
+    @SerializedName("status") val status: String,
     @SerializedName("createdAt") val createdAt: String?,
     @SerializedName("updatedAt") val updatedAt: String?
 )

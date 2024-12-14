@@ -66,6 +66,7 @@ class UserRepository(private val apiService: ApiService) {
                                 status = step.status
                             )
                         },
+                        status = goal.status,
                         createdAt = goal.createdAt,
                         updatedAt = goal.updatedAt
                     )

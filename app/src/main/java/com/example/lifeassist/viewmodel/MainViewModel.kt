@@ -57,6 +57,7 @@ class MainViewModel : ViewModel() {
             id = null,
             title = goalTitle,
             steps = steps,
+            status = "pending",
             createdAt = null,
             updatedAt = null
         )

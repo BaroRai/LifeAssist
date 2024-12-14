@@ -12,4 +12,5 @@
     <string name="register_button">Register</string>
     <string name="password_hint">Password</string>
     <string name="login_link">Already have and account ? Log in!</string>
+    <string name="title_activity_completed_goals">CompletedGoalsActivity</string>
 </resources>

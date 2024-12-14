@@ -2,9 +2,13 @@ package com.example.lifeassist.view
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
 import android.view.View
+import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -12,7 +16,9 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.example.lifeassist.R
@@ -65,26 +71,152 @@ class MainActivity : AppCompatActivity() {
                 // Display goals in goalsList LinearLayout
                 val goalsList = binding.goalsList
                 goalsList.removeAllViews() // clear old views
+
                 data.user.goals.forEach { goal ->
+                    // Count completed steps
+                    val completedStepsCount = goal.steps.count { it.status == "completed" }
+                    val totalStepsCount = goal.steps.size
+
+                    // Create a CardView for each goal
+                    val goalCard = CardView(this).apply {
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply {
+                            setMargins(16, 16, 16, 16) // Add margin around each card
+                        }
+                        radius = 24f // Rounded corners
+                        setContentPadding(16, 16, 16, 16)
+                        cardElevation = 4f // Shadow for the card
+                    }
+
+                    // Create a vertical layout to hold goal title and steps
+                    val cardContent = LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                    }
+
+                    // Add goal title with progress indicator
+                    val goalTitleLayout = LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        )
+                        setPadding(0, 0, 0, 16)
+                    }
+
                     val goalTextView = TextView(this).apply {
                         text = "Goal: ${goal.title}"
-                        textSize = 16f
-                        setPadding(16,16,16,16)
+                        textSize = 18f
+                        setTypeface(null, Typeface.BOLD)
+                        layoutParams = LinearLayout.LayoutParams(
+                            0, // Weight-based width
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            1f // Take up remaining space
+                        )
                     }
-                    goalsList.addView(goalTextView)
+                    goalTitleLayout.addView(goalTextView)
 
-                    // If you want to display steps:
-                    goal.steps.forEach { step ->
-                        val stepTextView = TextView(this).apply {
-                            text = " - Step: ${step.title} (${step.status})"
-                            textSize = 14f
-                            setPadding(32,8,16,8)
-                        }
-                        goalsList.addView(stepTextView)
+                    // Progress indicator (e.g., "2/4")
+                    val progressTextView = TextView(this).apply {
+                        text = "$completedStepsCount/$totalStepsCount"
+                        textSize = 16f
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        )
+                        gravity = Gravity.END
                     }
+                    goalTitleLayout.addView(progressTextView)
+
+                    // Add title layout to card content
+                    cardContent.addView(goalTitleLayout)
+
+                    // Add steps with CheckBox
+                    goal.steps.forEach { step ->
+                        val stepLayout = LinearLayout(this).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            layoutParams = LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.MATCH_PARENT,
+                                LinearLayout.LayoutParams.WRAP_CONTENT
+                            ).apply {
+                                setMargins(0, 8, 0, 8) // Add spacing between steps
+                            }
+                        }
+
+                        // Step text
+                        val stepTextView = TextView(this).apply {
+                            text = step.title
+                            textSize = 14f
+                            layoutParams = LinearLayout.LayoutParams(
+                                0, // Weight-based width
+                                LinearLayout.LayoutParams.WRAP_CONTENT,
+                                1f // Take up remaining space
+                            )
+                        }
+                        stepLayout.addView(stepTextView)
+
+                        // Step CheckBox
+                        val stepCheckBox = CheckBox(this).apply {
+                            isChecked = step.status == "completed"
+                            layoutParams = LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.WRAP_CONTENT,
+                                LinearLayout.LayoutParams.WRAP_CONTENT
+                            )
+                        }
+
+                        // Handle CheckBox changes
+                        stepCheckBox.setOnCheckedChangeListener { _, isChecked ->
+                            if (isChecked) {
+                                // Mark step as completed
+                                step.status = "completed"
+
+                                // Update progress indicator
+                                val newCompletedCount = goal.steps.count { it.status == "completed" }
+                                progressTextView.text = "$newCompletedCount/$totalStepsCount"
+
+                                // Check if all steps are completed
+                                if (newCompletedCount == totalStepsCount) {
+                                    // Show confirmation dialog
+                                    AlertDialog.Builder(this@MainActivity).apply {
+                                        setTitle("Complete Goal")
+                                        setMessage("You have completed all steps for this goal. Do you want to mark the goal as completed?")
+                                        setPositiveButton("Yes") { _, _ ->
+                                            // Mark goal as completed in the database
+                                            goal.status = "completed"
+                                            // Update the database or ViewModel here
+                                            Toast.makeText(this@MainActivity, "Goal marked as completed!", Toast.LENGTH_SHORT).show()
+                                        }
+                                        setNegativeButton("No") { dialog, _ ->
+                                            // Uncheck the last step
+                                            stepCheckBox.isChecked = false // Use the local stepCheckBox
+                                            step.status = "pending"
+                                            dialog.dismiss()
+                                        }
+                                        show()
+                                    }
+                                }
+                            } else {
+                                // Mark step as pending
+                                step.status = "pending"
+                                val newCompletedCount = goal.steps.count { it.status == "completed" }
+                                progressTextView.text = "$newCompletedCount/$totalStepsCount"
+                            }
+                        }
+
+                        stepLayout.addView(stepCheckBox)
+                        // Add step layout to card content
+                        cardContent.addView(stepLayout)
+                    }
+                    // Add content to the card
+                    goalCard.addView(cardContent)
+                    // Add the card to the goals list
+                    goalsList.addView(goalCard)
                 }
             }
         }
+
+
 
         mainViewModel.error.observe(this) { error ->
             Log.e("MainActivity", "Error observed: $error")
