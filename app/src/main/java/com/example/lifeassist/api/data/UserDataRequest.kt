@@ -11,7 +11,7 @@ data class UserDataRequest(
 )
 
 data class GoalRequest(
-    @SerializedName("id") val id: String,
+    //@SerializedName("id") val id: String,
     @SerializedName("title") val title: String,
     @SerializedName("steps") val steps: List<StepRequest>,// Steps associated with the goal
     @SerializedName("status") val status: String?

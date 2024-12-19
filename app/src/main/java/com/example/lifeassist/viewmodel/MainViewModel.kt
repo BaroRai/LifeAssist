@@ -26,8 +26,6 @@ class MainViewModel : ViewModel() {
     private val _isLoggedIn = MutableLiveData<Boolean>()
     val isLoggedIn: LiveData<Boolean> = _isLoggedIn
 
-    val goalsLiveData = MutableLiveData<List<Main.Goal>>()
-
     init {
         _isLoggedIn.value = true
     }
@@ -47,6 +45,10 @@ class MainViewModel : ViewModel() {
                     val userData = result.data.user
                     Log.d("MainViewModel", "Fetched user data: $userData")
 
+                    // Filter out goals with status "completed"
+                    val filteredGoals = userData.goals.filter { it.status != "completed" }
+                    Log.d("MainViewModel", "Filtered goals: $filteredGoals")
+
                     if (saveToPrefs) {
                         SharedPreferencesHelper.saveUserData(
                             context,
@@ -57,7 +59,14 @@ class MainViewModel : ViewModel() {
                         )
                     }
 
-                    _mainData.postValue(result.data)
+                    // Post filtered data
+                    _mainData.postValue(
+                        result.data.copy(
+                            user = result.data.user.copy(
+                                goals = filteredGoals
+                            )
+                        )
+                    )
                 }
                 is Result.Error -> {
                     Log.e("MainViewModel", "Error fetching user data: ${result.message}")
@@ -158,20 +167,14 @@ class MainViewModel : ViewModel() {
             return
         }
 
-        val goal = findGoalById(goalId)
-        if (goal == null) {
-            Log.e("MainViewModel", "prepareAndUpdateGoalStatus: Goal not found in mainData.")
-            _error.postValue("Goal not found.")
-            return
-        }
-
         Log.d("MainViewModel", "prepareAndUpdateGoalStatus called with userId=$userId, goalId=$goalId, newStatus=$newStatus")
+
         viewModelScope.launch {
             val result = userRepository.updateGoalStatus(userId, goalId, newStatus)
             when (result) {
                 is Result.Success -> {
                     Log.d("MainViewModel", "Goal status updated successfully.")
-                    fetchUserData(context) // Refresh data with context
+                    fetchUserData(context) // Refresh data to ensure updated goals list
                 }
                 is Result.Error -> {
                     Log.e("MainViewModel", "Error updating goal status: ${result.message}")

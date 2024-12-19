@@ -89,7 +89,6 @@ class UserRepository(private val apiService: ApiService) {
 
     private fun mapGoalToRequest(goal: Main.Goal): GoalRequest {
         val goalRequest = GoalRequest(
-            id = goal.id.toString(),
             title = goal.title,
             steps = goal.steps.map { step ->
                 StepRequest(title = step.title, status = step.status)
@@ -99,7 +98,6 @@ class UserRepository(private val apiService: ApiService) {
         Log.d("UserRepository", "Mapped GoalRequest: ${Gson().toJson(goalRequest)}")
         return goalRequest
     }
-
 
     suspend fun updateGoalStatus(userId: String, goalId: String, status: String): Result<Unit> = withContext(Dispatchers.IO) {
         Log.d("UserRepository", "updateGoalStatus called with userId=$userId, goalId=$goalId, status=$status")
