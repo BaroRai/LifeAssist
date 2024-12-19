@@ -15,7 +15,7 @@ data class Main(
         val id: String?,                         // Unique goal ID
         val title: String,                      // Title of the goal
         val steps: List<Step>,
-        var status: String,// List of steps linked to the goal
+        var status: String?,// List of steps linked to the goal
         val createdAt: String?,                 // Creation timestamp
         val updatedAt: String?                  // Last update timestamp
     )

@@ -7,10 +7,8 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.View
-import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -19,11 +17,11 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
-import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
 import com.example.lifeassist.R
 import com.example.lifeassist.databinding.ActivityMainBinding
 import com.example.lifeassist.databinding.PopupGoalBinding
+import com.example.lifeassist.utils.NavigationDrawerHelper
+import com.example.lifeassist.utils.SharedPreferencesHelper
 import com.example.lifeassist.viewmodel.MainViewModel
 
 class MainActivity : AppCompatActivity() {
@@ -37,22 +35,22 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        SharedPreferencesHelper.logCurrentState(this) //DEBUG CODE
+
+        NavigationDrawerHelper.setupDrawer(this)
+        NavigationDrawerHelper.setupNavigationMenu(this, "Home", binding.drawerLayout)
+
         setupObservers()
         setupPopup()
-        setupDrawer()
 
-        val userId = getUserId()
-        Log.d("MainActivity", "Retrieved userId from SharedPreferences: $userId")
+        // Fetch all user-related data via ViewModel
+        Log.d("MainActivity", "Initializing user data")
+        mainViewModel.initializeUserData(this)
+    }
 
-        if (userId.isNullOrEmpty()) {
-            Log.d("MainActivity", "No userId found, redirecting to login.")
-            redirectToLogin()
-        } else {
-            Log.d("MainActivity", "Calling fetchUserData with userId: $userId")
-            mainViewModel.fetchUserData(userId)
-        }
-
-        setupNavigationMenu()
+    override fun onResume() {
+        super.onResume()
+        mainViewModel.fetchUserData(this)
     }
 
     private fun setupObservers() {
@@ -63,39 +61,38 @@ class MainActivity : AppCompatActivity() {
 
         mainViewModel.mainData.observe(this) { mainData ->
             mainData?.let { data ->
-                // Display username and description
-                binding.usernameTextViewDrawer.text = data.user.username
+                Log.d("MainActivity", "User data loaded successfully: ${data.user.username}")
                 val descriptionText = data.user.description ?: "No description available"
                 binding.descriptionTextView.text = descriptionText
 
-                // Display goals in goalsList LinearLayout
                 val goalsList = binding.goalsList
-                goalsList.removeAllViews() // clear old views
+                goalsList.removeAllViews()
+
+                if (data.user.goals.isEmpty()) {
+                    Log.w("MainActivity", "No goals found to display.")
+                    return@let
+                }
 
                 data.user.goals.forEach { goal ->
-                    // Count completed steps
                     val completedStepsCount = goal.steps.count { it.status == "completed" }
                     val totalStepsCount = goal.steps.size
 
-                    // Create a CardView for each goal
                     val goalCard = CardView(this).apply {
                         layoutParams = LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.MATCH_PARENT,
                             LinearLayout.LayoutParams.WRAP_CONTENT
                         ).apply {
-                            setMargins(16, 16, 16, 16) // Add margin around each card
+                            setMargins(16, 16, 16, 16)
                         }
-                        radius = 24f // Rounded corners
+                        radius = 24f
                         setContentPadding(16, 16, 16, 16)
-                        cardElevation = 4f // Shadow for the card
+                        cardElevation = 4f
                     }
 
-                    // Create a vertical layout to hold goal title and steps
                     val cardContent = LinearLayout(this).apply {
                         orientation = LinearLayout.VERTICAL
                     }
 
-                    // Add goal title with progress indicator
                     val goalTitleLayout = LinearLayout(this).apply {
                         orientation = LinearLayout.HORIZONTAL
                         layoutParams = LinearLayout.LayoutParams(
@@ -110,14 +107,13 @@ class MainActivity : AppCompatActivity() {
                         textSize = 18f
                         setTypeface(null, Typeface.BOLD)
                         layoutParams = LinearLayout.LayoutParams(
-                            0, // Weight-based width
+                            0,
                             LinearLayout.LayoutParams.WRAP_CONTENT,
-                            1f // Take up remaining space
+                            1f
                         )
                     }
                     goalTitleLayout.addView(goalTextView)
 
-                    // Progress indicator (e.g., "2/4")
                     val progressTextView = TextView(this).apply {
                         text = "$completedStepsCount/$totalStepsCount"
                         textSize = 16f
@@ -129,10 +125,8 @@ class MainActivity : AppCompatActivity() {
                     }
                     goalTitleLayout.addView(progressTextView)
 
-                    // Add title layout to card content
                     cardContent.addView(goalTitleLayout)
 
-                    // Add steps with CheckBox
                     goal.steps.forEach { step ->
                         val stepLayout = LinearLayout(this).apply {
                             orientation = LinearLayout.HORIZONTAL
@@ -140,23 +134,21 @@ class MainActivity : AppCompatActivity() {
                                 LinearLayout.LayoutParams.MATCH_PARENT,
                                 LinearLayout.LayoutParams.WRAP_CONTENT
                             ).apply {
-                                setMargins(0, 8, 0, 8) // Add spacing between steps
+                                setMargins(0, 8, 0, 8)
                             }
                         }
 
-                        // Step text
                         val stepTextView = TextView(this).apply {
                             text = step.title
                             textSize = 14f
                             layoutParams = LinearLayout.LayoutParams(
-                                0, // Weight-based width
+                                0,
                                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                                1f // Take up remaining space
+                                1f
                             )
                         }
                         stepLayout.addView(stepTextView)
 
-                        // Step CheckBox
                         val stepCheckBox = CheckBox(this).apply {
                             isChecked = step.status == "completed"
                             layoutParams = LinearLayout.LayoutParams(
@@ -165,31 +157,29 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
 
-                        // Handle CheckBox changes
                         stepCheckBox.setOnCheckedChangeListener { _, isChecked ->
                             if (isChecked) {
-                                // Mark step as completed
                                 step.status = "completed"
-
-                                // Update progress indicator
                                 val newCompletedCount = goal.steps.count { it.status == "completed" }
                                 progressTextView.text = "$newCompletedCount/$totalStepsCount"
 
-                                // Check if all steps are completed
                                 if (newCompletedCount == totalStepsCount) {
-                                    // Show confirmation dialog
                                     AlertDialog.Builder(this@MainActivity).apply {
                                         setTitle("Complete Goal")
                                         setMessage("You have completed all steps for this goal. Do you want to mark the goal as completed?")
                                         setPositiveButton("Yes") { _, _ ->
-                                            // Mark goal as completed in the database
                                             goal.status = "completed"
-                                            // Update the database or ViewModel here
-                                            Toast.makeText(this@MainActivity, "Goal marked as completed!", Toast.LENGTH_SHORT).show()
+                                            if (goal.id != null) {
+                                                mainViewModel.prepareAndUpdateGoalStatus(
+                                                    this@MainActivity, goal.id, "completed"
+                                                )
+                                                Toast.makeText(this@MainActivity, "Goal marked as completed!", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(this@MainActivity, "Error: Cannot update goal.", Toast.LENGTH_SHORT).show()
+                                            }
                                         }
                                         setNegativeButton("No") { dialog, _ ->
-                                            // Uncheck the last step
-                                            stepCheckBox.isChecked = false // Use the local stepCheckBox
+                                            stepCheckBox.isChecked = false
                                             step.status = "pending"
                                             dialog.dismiss()
                                         }
@@ -197,7 +187,6 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 }
                             } else {
-                                // Mark step as pending
                                 step.status = "pending"
                                 val newCompletedCount = goal.steps.count { it.status == "completed" }
                                 progressTextView.text = "$newCompletedCount/$totalStepsCount"
@@ -205,22 +194,17 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         stepLayout.addView(stepCheckBox)
-                        // Add step layout to card content
                         cardContent.addView(stepLayout)
                     }
-                    // Add content to the card
                     goalCard.addView(cardContent)
-                    // Add the card to the goals list
                     goalsList.addView(goalCard)
                 }
-            }
+            } ?: Log.e("MainActivity", "mainData is null, unable to display user information.")
         }
-
-
 
         mainViewModel.error.observe(this) { error ->
             Log.e("MainActivity", "Error observed: $error")
-            Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Error: $error", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -229,22 +213,24 @@ class MainActivity : AppCompatActivity() {
         binding.container.addView(popupBinding.root)
         popupBinding.root.visibility = View.GONE
 
-        // Show popup for adding goals
         binding.openPopupButton.setOnClickListener {
             popupBinding.root.visibility = View.VISIBLE
             resetPopup()
         }
 
-        // Close popup
         popupBinding.closeButton.setOnClickListener {
             popupBinding.root.visibility = View.GONE
         }
 
-        // Add steps dynamically
+        val stepTitles = mutableSetOf<String>()
         popupBinding.addStepButton.setOnClickListener {
             val stepText = popupBinding.stepInput.text.toString().trim()
             if (stepText.isEmpty()) {
                 Toast.makeText(this, "Step cannot be empty", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (!stepTitles.add(stepText)) {
+                Toast.makeText(this, "Step already exists.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -289,6 +275,7 @@ class MainActivity : AppCompatActivity() {
 
             deleteButton.setOnClickListener {
                 popupBinding.stepsContainer.removeView(stepContainer)
+                stepTitles.remove(stepText)
             }
 
             editButton.setOnClickListener {
@@ -301,11 +288,9 @@ class MainActivity : AppCompatActivity() {
                     editButton.setImageResource(R.drawable.ic_baseline_stop_edit_24)
                 }
             }
-
             popupBinding.stepInput.text.clear()
         }
 
-        // Accept and save the goal
         popupBinding.acceptButton.setOnClickListener {
             val goalTitle = popupBinding.goalInput.text.toString().trim()
             if (goalTitle.isEmpty()) {
@@ -313,24 +298,17 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val stepTitles = mutableListOf<String>()
+            val stepTitlesList = mutableListOf<String>()
             for (i in 0 until popupBinding.stepsContainer.childCount) {
                 val stepContainer = popupBinding.stepsContainer.getChildAt(i) as LinearLayout
                 val stepEditText = stepContainer.getChildAt(0) as EditText
                 val stepTitle = stepEditText.text.toString().trim()
                 if (stepTitle.isNotEmpty()) {
-                    stepTitles.add(stepTitle)
+                    stepTitlesList.add(stepTitle)
                 }
             }
 
-            val userId = getUserId()
-            if (userId != null) {
-                Log.d("MainActivity", "Submitting goal with title='$goalTitle' and steps=$stepTitles for userId=$userId")
-                mainViewModel.prepareAndSubmitGoal(userId, goalTitle, stepTitles)
-            } else {
-                Log.w("MainActivity", "UserId is null, cannot submit goal.")
-            }
-
+            mainViewModel.prepareAndSubmitGoal(this, goalTitle, stepTitlesList)
             popupBinding.root.visibility = View.GONE
             resetPopup()
         }
@@ -344,55 +322,5 @@ class MainActivity : AppCompatActivity() {
     private fun redirectToLogin() {
         startActivity(Intent(this, LoginActivity::class.java))
         finish()
-    }
-
-    private fun setupDrawer() {
-        val drawerLayout = findViewById<DrawerLayout>(R.id.drawer_layout)
-        val hamburgerButton = findViewById<ImageButton>(R.id.hamburger_menu_button)
-
-        hamburgerButton.setOnClickListener {
-            if (drawerLayout.isDrawerOpen(GravityCompat.END)) {
-                drawerLayout.closeDrawer(GravityCompat.END)
-            } else {
-                drawerLayout.openDrawer(GravityCompat.END)
-            }
-        }
-    }
-
-    private fun setupNavigationMenu() {
-        findViewById<TextView>(R.id.nav_home).setOnClickListener {
-            Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show()
-            binding.drawerLayout.closeDrawer(GravityCompat.END)
-        }
-
-        findViewById<TextView>(R.id.nav_profile).setOnClickListener {
-            Toast.makeText(this, "Profile clicked", Toast.LENGTH_SHORT).show()
-            binding.drawerLayout.closeDrawer(GravityCompat.END)
-        }
-
-        findViewById<TextView>(R.id.nav_settings).setOnClickListener {
-            Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show()
-            binding.drawerLayout.closeDrawer(GravityCompat.END)
-        }
-
-        findViewById<TextView>(R.id.nav_logout).setOnClickListener {
-            logout()
-        }
-    }
-
-    private fun logout() {
-        val sharedPreferences = getSharedPreferences("LifeAssistPrefs", MODE_PRIVATE)
-        sharedPreferences.edit().clear().apply()
-
-        val intent = Intent(this, LoginActivity::class.java)
-        startActivity(intent)
-        finish()
-    }
-
-    private fun getUserId(): String? {
-        val userId = getSharedPreferences("LifeAssistPrefs", Context.MODE_PRIVATE)
-            .getString("userId", null)
-        Log.d("MainActivity", "getUserId returned: $userId")
-        return userId
     }
 }

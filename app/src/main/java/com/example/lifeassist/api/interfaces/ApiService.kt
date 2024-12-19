@@ -5,6 +5,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface ApiService {
@@ -24,4 +25,8 @@ interface ApiService {
     // Submit a new goal for a user: POST /api/users/{userId}/goals
     @POST("api/users/{userId}/goals")
     suspend fun submitGoal(@Path("userId") userId: String, @Body goalRequest: GoalRequest): Response<GoalResponse>
+
+    @PUT("api/users/{userId}/goals/{goalId}/status")
+    suspend fun updateGoalStatus(@Path("userId") userId: String, @Path("goalId") goalId: String,
+                                 @Body request: GoalStatusUpdateRequest): Response<Unit>
 }

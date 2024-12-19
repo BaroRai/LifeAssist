@@ -1,0 +1,52 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="280dp"
+    android:layout_height="match_parent"
+    android:layout_gravity="end"
+    android:orientation="vertical"
+    android:background="#FFFFFF"
+    android:paddingTop="56dp"
+    android:paddingRight="10dp"
+    android:paddingLeft="10dp">
+
+    <!-- Menu Items -->
+    <TextView
+        android:id="@+id/nav_home"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Home"
+        android:clickable="true"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:textColor="@color/black" />
+
+    <TextView
+        android:id="@+id/nav_profile"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Profile"
+        android:clickable="true"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:textColor="@color/black" />
+
+    <TextView
+        android:id="@+id/nav_completed_goals"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Completed Goals"
+        android:clickable="true"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:textColor="@color/black" />
+
+    <TextView
+        android:id="@+id/nav_logout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Log Out"
+        android:clickable="true"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:textColor="@color/black" />
+</LinearLayout>
