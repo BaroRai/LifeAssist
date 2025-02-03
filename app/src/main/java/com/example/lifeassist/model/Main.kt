@@ -5,9 +5,9 @@ data class Main(
 ) {
     data class User(
         val id: String?,              // Unique user ID
-        val username: String,            // User's name
+        var username: String,            // User's name
         val email: String,           // User's email
-        val description: String?,
+        var description: String?,
         val goals: List<Goal>
     )
 

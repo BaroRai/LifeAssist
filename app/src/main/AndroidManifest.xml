@@ -56,6 +56,14 @@
             android:label="@string/title_activity_completed_goals"
             android:theme="@style/Theme.LifeAssist" />
 
+        <!-- Profile Activity -->
+        <activity
+            android:name=".view.ProfileActivity"
+            android:exported="false"
+            android:label="@string/title_view_profile_activity"
+            android:theme="@style/Theme.LifeAssist" />
+
+
     </application>
 
 </manifest>

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawer_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Main Content Area -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Container for the hamburger button and profile content -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- Hamburger Button -->
+            <ImageButton
+                android:id="@+id/hamburger_menu_button"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_alignParentEnd="true"
+                android:layout_margin="16dp"
+                android:background="@android:color/transparent"
+                android:clickable="true"
+                android:focusable="true"
+                android:elevation="8dp"
+                android:contentDescription="Menu"
+                android:src="@drawable/baseline_density_medium_24" />
+
+            <!-- Profile Content Area with CardView styling -->
+            <ScrollView
+                android:id="@+id/scrollViewProfile"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@id/hamburger_menu_button"
+                android:padding="16dp">
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="20dp"
+                    app:cardElevation="4dp"
+                    app:cardCornerRadius="8dp"
+                    android:background="@drawable/rect_bg">
+
+                    <LinearLayout
+                        android:id="@+id/profileLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <!-- Edit Username -->
+                        <EditText
+                            android:id="@+id/editUsername"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Username"
+                            android:textSize="20sp"
+                            android:layout_marginBottom="16dp"/>
+
+                        <!-- Password Container -->
+                        <LinearLayout
+                            android:id="@+id/passwordContainer"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="16dp">
+
+                            <EditText
+                                android:id="@+id/editPassword"
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="wrap_content"
+                                android:textSize="20sp"
+                                android:hint="Password"
+                                android:inputType="textPassword"
+                                android:focusable="false"
+                                android:cursorVisible="false" />
+
+                            <ImageButton
+                                android:id="@+id/showPasswordButton"
+                                android:layout_width="50dp"
+                                android:layout_height="50dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:src="@drawable/ic_eye"
+                                android:contentDescription="Show Password"
+                                android:clickable="true"
+                                android:focusable="true" />
+                        </LinearLayout>
+
+                        <!-- Edit Email (read-only) -->
+                        <EditText
+                            android:id="@+id/editEmail"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Email"
+                            android:textSize="20sp"
+                            android:layout_marginBottom="30dp"
+                            android:inputType="textEmailAddress"
+                            android:enabled="false"/>
+
+                        <!-- Edit Description -->
+                        <EditText
+                            android:id="@+id/editDescription"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Description"
+                            android:textSize="18sp"
+                            android:inputType="textMultiLine"
+                            android:minLines="3"
+                            android:layout_marginBottom="4dp"/>
+
+                        <!-- Description Character Counter -->
+                        <TextView
+                            android:id="@+id/descriptionCounter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0/200"
+                            android:textSize="14sp"
+                            android:layout_marginBottom="16dp"/>
+
+                        <!-- Save Profile Button -->
+                        <Button
+                            android:id="@+id/saveProfileButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Save Profile"/>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+            </ScrollView>
+        </RelativeLayout>
+    </FrameLayout>
+
+    <!-- Navigation Drawer Include -->
+    <include
+        android:id="@+id/drawer_content"
+        layout="@layout/navigation_drawer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="end" />
+
+</androidx.drawerlayout.widget.DrawerLayout>

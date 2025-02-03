@@ -94,4 +94,14 @@ object SharedPreferencesHelper {
         Log.d(TAG, "Current SharedPreferences state: ${prefs.all}")
     }
 
+    //Password methods
+    fun getPassword(context: Context): String? =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString("userPassword", null)
+
+    fun savePassword(context: Context, password: String) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+            .putString("userPassword", password)
+            .apply()
+    }
+
 }

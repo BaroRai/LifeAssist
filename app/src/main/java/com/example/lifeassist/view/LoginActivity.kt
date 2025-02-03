@@ -38,7 +38,7 @@ class LoginActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            loginViewModel.login(email, password) // Trigger login in ViewModel
+            loginViewModel.login(email, password)
         }
     }
 
@@ -47,7 +47,7 @@ class LoginActivity : AppCompatActivity() {
             when (result) {
                 is Result.Success -> {
                     val user = result.data
-                    saveLoginState(user.userId, user.email)
+                    saveLoginState(user.userId, user.email, binding.passwordInput.text.toString().trim())
                     navigateToMainActivity(user.username.toString())
                 }
                 is Result.Error -> {
@@ -57,11 +57,13 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveLoginState(userId: String, email: String) {
+
+    private fun saveLoginState(userId: String, email: String, password: String) {
         val sharedPreferences = getSharedPreferences("LifeAssistPrefs", MODE_PRIVATE)
         with(sharedPreferences.edit()) {
             putString("userId", userId)
             putString("userEmail", email)
+            putString("userPassword", password)
             putBoolean("isLoggedIn", true)
             apply()
         }

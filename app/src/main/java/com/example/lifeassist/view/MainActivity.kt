@@ -4,15 +4,12 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.Gravity
 import android.view.View
-import android.widget.CheckBox
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -20,30 +17,36 @@ import androidx.cardview.widget.CardView
 import com.example.lifeassist.R
 import com.example.lifeassist.databinding.ActivityMainBinding
 import com.example.lifeassist.databinding.PopupGoalBinding
+import com.example.lifeassist.model.Main
 import com.example.lifeassist.utils.NavigationDrawerHelper
 import com.example.lifeassist.utils.SharedPreferencesHelper
 import com.example.lifeassist.viewmodel.MainViewModel
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var popupBinding: PopupGoalBinding
     private val mainViewModel: MainViewModel by viewModels()
 
+    // Keep a local copy of all goals to support filtering.
+    private var allGoals = listOf<Main.Goal>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        SharedPreferencesHelper.logCurrentState(this) //DEBUG CODE
+        SharedPreferencesHelper.logCurrentState(this) // DEBUG
 
         NavigationDrawerHelper.setupDrawer(this)
         NavigationDrawerHelper.setupNavigationMenu(this, "Home", binding.drawerLayout)
 
         setupObservers()
         setupPopup()
+        setupGoalFilter()
 
-        // Fetch all user-related data via ViewModel
         Log.d("MainActivity", "Initializing user data")
         mainViewModel.initializeUserData(this)
     }
@@ -62,149 +65,220 @@ class MainActivity : AppCompatActivity() {
         mainViewModel.mainData.observe(this) { mainData ->
             mainData?.let { data ->
                 Log.d("MainActivity", "User data loaded successfully: ${data.user.username}")
+                // Update welcome text with current user's name.
+                val welcomeTextView = binding.mainScreenText.findViewById<TextView>(R.id.mainScreenText)
+                welcomeTextView.text = "Welcome, ${data.user.username}"
+
+                // Update description TextView.
                 val descriptionText = data.user.description ?: "No description available"
                 binding.descriptionTextView.text = descriptionText
 
-                val goalsList = binding.goalsList
-                goalsList.removeAllViews()
-
-                if (data.user.goals.isEmpty()) {
-                    Log.w("MainActivity", "No goals found to display.")
-                    return@let
-                }
-
-                data.user.goals.forEach { goal ->
-                    val completedStepsCount = goal.steps.count { it.status == "completed" }
-                    val totalStepsCount = goal.steps.size
-
-                    val goalCard = CardView(this).apply {
-                        layoutParams = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        ).apply {
-                            setMargins(16, 16, 16, 16)
-                        }
-                        radius = 24f
-                        setContentPadding(16, 16, 16, 16)
-                        cardElevation = 4f
-                    }
-
-                    val cardContent = LinearLayout(this).apply {
-                        orientation = LinearLayout.VERTICAL
-                    }
-
-                    val goalTitleLayout = LinearLayout(this).apply {
-                        orientation = LinearLayout.HORIZONTAL
-                        layoutParams = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        )
-                        setPadding(0, 0, 0, 16)
-                    }
-
-                    val goalTextView = TextView(this).apply {
-                        text = "Goal: ${goal.title}"
-                        textSize = 18f
-                        setTypeface(null, Typeface.BOLD)
-                        layoutParams = LinearLayout.LayoutParams(
-                            0,
-                            LinearLayout.LayoutParams.WRAP_CONTENT,
-                            1f
-                        )
-                    }
-                    goalTitleLayout.addView(goalTextView)
-
-                    val progressTextView = TextView(this).apply {
-                        text = "$completedStepsCount/$totalStepsCount"
-                        textSize = 16f
-                        layoutParams = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.WRAP_CONTENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        )
-                        gravity = Gravity.END
-                    }
-                    goalTitleLayout.addView(progressTextView)
-
-                    cardContent.addView(goalTitleLayout)
-
-                    goal.steps.forEach { step ->
-                        val stepLayout = LinearLayout(this).apply {
-                            orientation = LinearLayout.HORIZONTAL
-                            layoutParams = LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.MATCH_PARENT,
-                                LinearLayout.LayoutParams.WRAP_CONTENT
-                            ).apply {
-                                setMargins(0, 8, 0, 8)
-                            }
-                        }
-
-                        val stepTextView = TextView(this).apply {
-                            text = step.title
-                            textSize = 14f
-                            layoutParams = LinearLayout.LayoutParams(
-                                0,
-                                LinearLayout.LayoutParams.WRAP_CONTENT,
-                                1f
-                            )
-                        }
-                        stepLayout.addView(stepTextView)
-
-                        val stepCheckBox = CheckBox(this).apply {
-                            isChecked = step.status == "completed"
-                            layoutParams = LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.WRAP_CONTENT,
-                                LinearLayout.LayoutParams.WRAP_CONTENT
-                            )
-                        }
-
-                        stepCheckBox.setOnCheckedChangeListener { _, isChecked ->
-                            if (isChecked) {
-                                step.status = "completed"
-                                val newCompletedCount = goal.steps.count { it.status == "completed" }
-                                progressTextView.text = "$newCompletedCount/$totalStepsCount"
-
-                                if (newCompletedCount == totalStepsCount) {
-                                    AlertDialog.Builder(this@MainActivity).apply {
-                                        setTitle("Complete Goal")
-                                        setMessage("You have completed all steps for this goal. Do you want to mark the goal as completed?")
-                                        setPositiveButton("Yes") { _, _ ->
-                                            goal.status = "completed"
-                                            if (goal.id != null) {
-                                                mainViewModel.prepareAndUpdateGoalStatus(
-                                                    this@MainActivity, goal.id, "completed"
-                                                )
-                                                Toast.makeText(this@MainActivity, "Goal marked as completed!", Toast.LENGTH_SHORT).show()
-                                            } else {
-                                                Toast.makeText(this@MainActivity, "Error: Cannot update goal.", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                        setNegativeButton("No") { dialog, _ ->
-                                            stepCheckBox.isChecked = false
-                                            step.status = "pending"
-                                            dialog.dismiss()
-                                        }
-                                        show()
-                                    }
-                                }
-                            } else {
-                                step.status = "pending"
-                                val newCompletedCount = goal.steps.count { it.status == "completed" }
-                                progressTextView.text = "$newCompletedCount/$totalStepsCount"
-                            }
-                        }
-
-                        stepLayout.addView(stepCheckBox)
-                        cardContent.addView(stepLayout)
-                    }
-                    goalCard.addView(cardContent)
-                    goalsList.addView(goalCard)
-                }
+                // Save goals locally and display them.
+                allGoals = data.user.goals
+                filterAndDisplayGoals()
             } ?: Log.e("MainActivity", "mainData is null, unable to display user information.")
         }
 
         mainViewModel.error.observe(this) { error ->
             Log.e("MainActivity", "Error observed: $error")
             Toast.makeText(this, "Error: $error", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // --- Goal Filtering and Display ---
+
+    // Filter the stored goals according to the filter text and spinner selection.
+    private fun filterAndDisplayGoals() {
+        // Get filter text and spinner selection.
+        val filterText = binding.goalFilterEditText.text.toString().trim().lowercase(Locale.getDefault())
+        val sortOption = binding.filterSpinner.selectedItem.toString()
+
+        var filteredGoals = allGoals
+
+        // If filtering by name (if spinner is set to "Name") then filter by substring.
+        if (sortOption.equals("Name", ignoreCase = true)) {
+            if (filterText.isNotEmpty()) {
+                filteredGoals = filteredGoals.filter { it.title.lowercase(Locale.getDefault()).contains(filterText) }
+            }
+        } else {
+            // For Ascending or Descending, first (optionally) filter by substring if provided.
+            if (filterText.isNotEmpty()) {
+                filteredGoals = filteredGoals.filter { it.title.lowercase(Locale.getDefault()).contains(filterText) }
+            }
+            filteredGoals = if (sortOption.equals("Ascending", ignoreCase = true)) {
+                filteredGoals.sortedBy { it.title }
+            } else { // Descending
+                filteredGoals.sortedByDescending { it.title }
+            }
+        }
+
+        displayGoals(filteredGoals)
+    }
+
+    // Display the provided list of goals.
+    private fun displayGoals(goals: List<Main.Goal>) {
+        val goalsList = binding.goalsList
+        goalsList.removeAllViews()
+
+        if (goals.isEmpty()) {
+            Log.w("MainActivity", "No goals found to display.")
+            return
+        }
+
+        goals.forEach { goal ->
+            val completedStepsCount = goal.steps.count { it.status == "completed" }
+            val totalStepsCount = goal.steps.size
+
+            val goalCard = CardView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(16, 16, 16, 16) }
+                radius = 24f
+                setContentPadding(16, 16, 16, 16)
+                cardElevation = 4f
+            }
+
+            val cardContent = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+            }
+
+            // Layout for goal title and timestamp.
+            val goalTitleLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            // Goal title.
+            val goalTitleTextView = TextView(this).apply {
+                text = "Goal: ${goal.title}"
+                textSize = 18f
+                setTypeface(null, Typeface.BOLD)
+            }
+            goalTitleLayout.addView(goalTitleTextView)
+
+            // Timestamp (formatted).
+            val timestampTextView = TextView(this).apply {
+                text = "Created: ${formatTimestamp(goal.createdAt)}"
+                textSize = 12f
+                setTextColor(resources.getColor(android.R.color.darker_gray))
+            }
+            goalTitleLayout.addView(timestampTextView)
+
+            cardContent.addView(goalTitleLayout)
+
+            // Progress indicator.
+            val progressTextView = TextView(this).apply {
+                text = "$completedStepsCount/$totalStepsCount"
+                textSize = 16f
+                gravity = Gravity.END
+            }
+            cardContent.addView(progressTextView)
+
+            // Steps list.
+            goal.steps.forEach { step ->
+                val stepLayout = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(0, 8, 0, 8) }
+                }
+                val stepTextView = TextView(this).apply {
+                    text = step.title
+                    textSize = 14f
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                stepLayout.addView(stepTextView)
+                val stepCheckBox = CheckBox(this).apply {
+                    isChecked = step.status == "completed"
+                }
+                stepCheckBox.setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) {
+                        step.status = "completed"
+                        val newCompletedCount = goal.steps.count { it.status == "completed" }
+                        progressTextView.text = "$newCompletedCount/$totalStepsCount"
+                        if (newCompletedCount == totalStepsCount) {
+                            AlertDialog.Builder(this@MainActivity).apply {
+                                setTitle("Complete Goal")
+                                setMessage("You have completed all steps for this goal. Mark as completed?")
+                                setPositiveButton("Yes") { _, _ ->
+                                    goal.status = "completed"
+                                    if (goal.id != null) {
+                                        mainViewModel.prepareAndUpdateGoalStatus(
+                                            this@MainActivity, goal.id, "completed"
+                                        )
+                                        Toast.makeText(this@MainActivity, "Goal marked as completed!", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(this@MainActivity, "Error: Cannot update goal.", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                setNegativeButton("No") { dialog, _ ->
+                                    stepCheckBox.isChecked = false
+                                    step.status = "pending"
+                                    dialog.dismiss()
+                                }
+                                show()
+                            }
+                        }
+                    } else {
+                        step.status = "pending"
+                        val newCompletedCount = goal.steps.count { it.status == "completed" }
+                        progressTextView.text = "$newCompletedCount/$totalStepsCount"
+                    }
+                }
+                stepLayout.addView(stepCheckBox)
+                cardContent.addView(stepLayout)
+            }
+            goalCard.addView(cardContent)
+            goalsList.addView(goalCard)
+        }
+    }
+
+    // Helper: Format timestamp string to "dd/MM/yyyy HH:mm"
+    private fun formatTimestamp(timestamp: String?): String {
+        if (timestamp.isNullOrEmpty()) return "N/A"
+        try {
+            // Assume input is in ISO 8601 format, e.g., "2024-12-14T12:45:59.749Z"
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+            inputFormat.timeZone = TimeZone.getTimeZone("UTC")
+            val date = inputFormat.parse(timestamp)
+            val outputFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            return outputFormat.format(date)
+        } catch (e: ParseException) {
+            e.printStackTrace()
+        }
+        return timestamp // fallback
+    }
+
+    // Set up the filter: both an EditText and a Spinner for 3 options.
+    private fun setupGoalFilter() {
+        // Assume the spinner is in the layout with id filterSpinner.
+        val filterEditText = findViewById<EditText>(R.id.goalFilterEditText)
+        val filterSpinner = findViewById<Spinner>(R.id.filterSpinner)
+        // Set up spinner adapter.
+        val options = listOf("Name", "Ascending", "Descending")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, options)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        filterSpinner.adapter = adapter
+
+        // When either the text changes or the spinner selection changes, update display.
+        filterEditText.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                filterAndDisplayGoals()
+            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { }
+        })
+
+        filterSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) { }
+            override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                filterAndDisplayGoals()
+            }
         }
     }
 

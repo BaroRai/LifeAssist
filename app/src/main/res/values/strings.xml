@@ -13,4 +13,7 @@
     <string name="password_hint">Password</string>
     <string name="login_link">Already have and account ? Log in!</string>
     <string name="title_activity_completed_goals">CompletedGoalsActivity</string>
+
+    <!-- Profile activity -->
+    <string name="title_view_profile_activity">Profile Activity</string>
 </resources>

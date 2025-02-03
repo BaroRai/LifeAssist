@@ -8,6 +8,8 @@ import com.example.lifeassist.model.Result
 import com.example.lifeassist.api.data.GoalRequest
 import com.example.lifeassist.api.data.GoalStatusUpdateRequest
 import com.example.lifeassist.api.data.StepRequest
+import com.example.lifeassist.api.data.UpdateDescriptionRequest
+import com.example.lifeassist.api.data.UpdateProfileRequest
 import com.example.lifeassist.api.data.UserDataResponse
 import com.example.lifeassist.utils.SharedPreferencesHelper
 import com.google.gson.Gson
@@ -114,6 +116,46 @@ class UserRepository(private val apiService: ApiService) {
             }
         } catch (e: Exception) {
             Log.e("UserRepository", "updateGoalStatus exception: ${e.localizedMessage}", e)
+            Result.Error("Network error: ${e.localizedMessage}")
+        }
+    }
+
+    suspend fun updateUserProfile(userId: String, username: String, description: String): Result<Unit> = withContext(Dispatchers.IO) {
+        Log.d("UserRepository", "updateUserProfile called with userId=$userId, username=$username, description=$description")
+        try {
+            val updateRequest = UpdateProfileRequest(
+                username = username,
+                description = description
+            )
+            val response = apiService.updateUserProfile(userId, updateRequest)
+            if (response.isSuccessful) {
+                Log.d("UserRepository", "updateUserProfile success")
+                Result.Success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "Unknown error"
+                Log.e("UserRepository", "updateUserProfile failed: $errorBody")
+                Result.Error("Error: $errorBody")
+            }
+        } catch (e: Exception) {
+            Log.e("UserRepository", "updateUserProfile exception: ${e.localizedMessage}", e)
+            Result.Error("Network error: ${e.localizedMessage}")
+        }
+    }
+    suspend fun updateUserDescription(userId: String, description: String): Result<Unit> = withContext(Dispatchers.IO) {
+        Log.d("UserRepository", "updateUserDescription called with userId=$userId, description=$description")
+        try {
+            val request = UpdateDescriptionRequest(description = description)
+            val response = apiService.updateUserDescription(userId, request)
+            if (response.isSuccessful) {
+                Log.d("UserRepository", "updateUserDescription success")
+                Result.Success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "Unknown error"
+                Log.e("UserRepository", "updateUserDescription failed: $errorBody")
+                Result.Error("Error: $errorBody")
+            }
+        } catch (e: Exception) {
+            Log.e("UserRepository", "updateUserDescription exception: ${e.localizedMessage}", e)
             Result.Error("Network error: ${e.localizedMessage}")
         }
     }

@@ -59,7 +59,6 @@ class MainViewModel : ViewModel() {
                         )
                     }
 
-                    // Post filtered data
                     _mainData.postValue(
                         result.data.copy(
                             user = result.data.user.copy(
@@ -89,7 +88,6 @@ class MainViewModel : ViewModel() {
             return
         }
 
-        // Log current state
         Log.d("MainViewModel", "User data from SharedPreferences: userId=$userId, username=$username, email=$email, description=$description")
 
         if (username.isEmpty() || email.isEmpty() || description.isEmpty()) {
@@ -113,7 +111,7 @@ class MainViewModel : ViewModel() {
 
     fun prepareAndSubmitGoal(context: Context, goalTitle: String, stepTitles: List<String>) {
         val userId = SharedPreferencesHelper.getUserId(context)
-        if (userId.isBlank()) { // Check for an empty string instead of null
+        if (userId.isBlank()) {
             Log.e("MainViewModel", "prepareAndSubmitGoal: User ID is missing.")
             _error.postValue("User not logged in.")
             return
@@ -174,7 +172,7 @@ class MainViewModel : ViewModel() {
             when (result) {
                 is Result.Success -> {
                     Log.d("MainViewModel", "Goal status updated successfully.")
-                    fetchUserData(context) // Refresh data to ensure updated goals list
+                    fetchUserData(context)
                 }
                 is Result.Error -> {
                     Log.e("MainViewModel", "Error updating goal status: ${result.message}")
@@ -205,10 +203,55 @@ class MainViewModel : ViewModel() {
         return goal
     }
 
-
     fun logout(context: Context) {
         Log.d("MainViewModel", "logout: Clearing user data.")
         SharedPreferencesHelper.clearUserData(context)
-        _isLoggedIn.postValue(false) // Notify activity to redirect to login
+        _isLoggedIn.postValue(false)
+    }
+
+    private val _updateProfileResult = MutableLiveData<Result<Unit>>()
+    val updateProfileResult: LiveData<Result<Unit>> get() = _updateProfileResult
+
+    fun updateUserDescription(context: Context, newDescription: String) {
+        val userId = SharedPreferencesHelper.getUserId(context)
+        if (userId.isEmpty()) {
+            _error.postValue("User not logged in.")
+            return
+        }
+
+        viewModelScope.launch {
+            val result = userRepository.updateUserDescription(userId, newDescription)
+            when (result) {
+                is Result.Success -> {
+                    _mainData.value?.user?.description = newDescription
+                    _mainData.postValue(_mainData.value)
+                    Toast.makeText(context, "Description updated successfully", Toast.LENGTH_SHORT).show()
+                }
+                is Result.Error -> {
+                    _error.postValue(result.message)
+                    Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    fun updateUserProfile(context: Context, userId: String, username: String, description: String) {
+        viewModelScope.launch {
+            val result = userRepository.updateUserProfile(userId, username, description)
+            when (result) {
+                is Result.Success -> {
+                    SharedPreferencesHelper.saveUsername(context, username)
+                    SharedPreferencesHelper.saveDescription(context, description)
+                    _mainData.value?.user?.username = username
+                    _mainData.value?.user?.description = description
+                    _mainData.postValue(_mainData.value)
+                    Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
+                }
+                is Result.Error -> {
+                    _error.postValue(result.message)
+                    Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 }

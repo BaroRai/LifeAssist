@@ -4,6 +4,7 @@ import com.example.lifeassist.api.data.*
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -29,4 +30,19 @@ interface ApiService {
     @PUT("api/users/{userId}/goals/{goalId}/status")
     suspend fun updateGoalStatus(@Path("userId") userId: String, @Path("goalId") goalId: String,
                                  @Body request: GoalStatusUpdateRequest): Response<Unit>
+
+    // PATCH: Update user profile (username and description)
+    @PATCH("api/users/{userId}")
+    suspend fun updateUserProfile(
+        @Path("userId") userId: String,
+        @Body updateProfileRequest: UpdateProfileRequest
+    ): Response<UserDataResponse>
+
+    // PATCH: Update user description
+    @PATCH("api/users/{userId}/description")
+    suspend fun updateUserDescription(
+        @Path("userId") userId: String,
+        @Body updateDescriptionRequest: UpdateDescriptionRequest
+    ): Response<UserDataResponse>
+
 }

@@ -12,7 +12,9 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.example.lifeassist.R
 import com.example.lifeassist.view.CompletedGoalsActivity
+import com.example.lifeassist.view.LoginActivity
 import com.example.lifeassist.view.MainActivity
+import com.example.lifeassist.view.ProfileActivity
 
 object NavigationDrawerHelper {
 
@@ -36,7 +38,9 @@ object NavigationDrawerHelper {
 
         val navProfile = drawerLayout.findViewById<TextView>(R.id.nav_profile)
         navProfile.setOnClickListener {
-            Toast.makeText(activity, "Profile clicked", Toast.LENGTH_SHORT).show()
+            val context = activity as AppCompatActivity
+            val intent = Intent(activity, ProfileActivity::class.java)
+            context.startActivity(intent)
             drawerLayout.closeDrawer(GravityCompat.END)
         }
 
@@ -56,6 +60,9 @@ object NavigationDrawerHelper {
         navLogout.setOnClickListener {
             activity.getSharedPreferences("LifeAssistPrefs", Context.MODE_PRIVATE).edit().clear().apply()
             Toast.makeText(activity, "Logged out", Toast.LENGTH_SHORT).show()
+            val intent = Intent(activity, LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            activity.startActivity(intent)
             activity.finish()
         }
     }

@@ -1,10 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".view.MainActivity"
-    android:id="@+id/drawer_layout">
+    tools:context=".view.MainActivity">
 
     <!-- Main Content Area -->
     <FrameLayout
@@ -20,18 +21,20 @@
             android:padding="16dp">
 
             <LinearLayout
-                android:id="@+id/mainScreenText"
+                android:id="@+id/mainScreen"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:orientation="horizontal">
 
+                <!-- Welcome message TextView -->
                 <TextView
+                    android:id="@+id/mainScreenText"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:gravity="start|center_vertical"
                     android:maxLines="1"
-                    android:text="Main screen"
+                    android:text="Welcome, User"
                     android:textSize="18sp"
                     android:paddingLeft="16dp"
                     android:background="@drawable/rect_bg"/>
@@ -46,9 +49,10 @@
                     android:src="@drawable/baseline_density_medium_24" />
             </LinearLayout>
 
+            <!-- Description TextView -->
             <TextView
                 android:id="@+id/descriptionTextView"
-                android:layout_below="@+id/mainScreenText"
+                android:layout_below="@+id/mainScreen"
                 android:layout_marginTop="10dp"
                 android:layout_width="match_parent"
                 android:layout_height="100dp"
@@ -57,24 +61,53 @@
                 android:textSize="16sp"
                 android:background="@drawable/rect_bg"/>
 
+            <!-- Filter Container: EditText and Spinner -->
+            <LinearLayout
+                android:id="@+id/filterContainer"
+                android:layout_below="@id/descriptionTextView"
+                android:layout_marginTop="10dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
+                <EditText
+                    android:id="@+id/goalFilterEditText"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:hint="Filter goals..."
+                    android:textSize="16sp"
+                    android:padding="16dp"
+                    android:background="@drawable/rect_bg" />
+
+                <Spinner
+                    android:id="@+id/filterSpinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="20sp"
+                    android:padding="16dp"
+                    android:layout_marginStart="6dp" />
+            </LinearLayout>
+
+            <!-- Goals List ScrollView -->
             <ScrollView
+                android:layout_below="@id/filterContainer"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_below="@+id/descriptionTextView"
                 android:layout_marginTop="10dp"
                 android:padding="8dp"
                 android:layout_marginBottom="30dp"
                 android:contentDescription="Goals content"
                 android:background="@drawable/rect_bg">
 
-                <!-- LinearLayout inside ScrollView to display the goals -->
+                <!-- LinearLayout to display goals dynamically -->
                 <LinearLayout
                     android:id="@+id/goalsList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
-                    <!-- Goals will be added dynamically here -->
+                    <!-- Goals are added dynamically here -->
                 </LinearLayout>
             </ScrollView>
 
